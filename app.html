@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Portefeuille et relances · Tableau de bord</title>
+<style>
+:root{--ink:#14213d;--mut:#5b6475;--line:#e6e9ef;--bg:#fff;--soft:#f6f8fb;--blue:#1f5fbf;--ok:#1a8f5a;--warn:#d98a00;--bad:#c8382d;--wa:#25d366}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg);font-size:14px}
+header{display:flex;justify-content:space-between;align-items:center;padding:14px 22px;border-bottom:1px solid var(--line);gap:10px;flex-wrap:wrap}
+header h1{font-size:17px;margin:0}header small{color:var(--mut)}
+.btn{background:var(--blue);color:#fff;border:0;border-radius:8px;padding:9px 16px;font-weight:600;cursor:pointer;font-size:14px}
+.btn.sec{background:#fff;color:var(--blue);border:1px solid var(--blue)}
+main{padding:18px 22px;max-width:1280px;margin:auto}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.card{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fff}
+.kpi .l{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.kpi .v{font-size:24px;font-weight:700;margin-top:4px}.kpi .s{font-size:12px;color:var(--mut);margin-top:2px}
+.down{color:var(--ok);font-weight:600}
+.grid2{display:grid;grid-template-columns:1.2fr 1fr;gap:12px;margin-top:12px}
+h2{font-size:14px;margin:0 0 10px}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}th{color:var(--mut);font-weight:600;font-size:12px}
+.bar{height:8px;border-radius:4px;background:var(--soft);position:relative;min-width:60px}.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:4px}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.t-rappel{background:#e8f0fd;color:var(--blue)}.t-j0{background:#eef6f0;color:var(--ok)}.t-j3{background:#fff4df;color:#9a6300}.t-promesse{background:#f1ecfb;color:#6a3fb5}.t-appel{background:#fde9e7;color:var(--bad)}.t-paye{background:#e3f5ea;color:var(--ok)}
+.cycle{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:12px}
+.step{border:1px solid var(--line);border-radius:10px;padding:10px;font-size:12px;background:var(--soft)}
+.step b{display:block;font-size:20px;color:var(--ink)}.step span{color:var(--mut)}
+.step.on{border-color:var(--blue);background:#eef4ff;box-shadow:0 0 0 2px #cfe0fb}
+.scroll{overflow-x:auto}
+.agsel{border:1px solid var(--line);border-radius:6px;padding:4px 6px;font-size:12px}
+#modal{position:fixed;inset:0;background:rgba(20,33,61,.45);display:none;align-items:center;justify-content:center;padding:14px;z-index:9}
+#modal .box{background:#fff;border-radius:14px;max-width:440px;width:100%;padding:18px;max-height:92vh;overflow:auto}
+.wa{background:#e7f8ee;border-radius:10px;padding:12px;font-size:13.5px;line-height:1.45;border-left:4px solid var(--wa);white-space:pre-line}
+.prog{display:flex;gap:4px;margin:10px 0}.prog i{flex:1;height:4px;border-radius:2px;background:var(--line)}.prog i.on{background:var(--blue)}
+.foot{color:var(--mut);font-size:12px;margin:16px 0 4px}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.cycle{grid-template-columns:repeat(3,1fr)}main{padding:12px}header{padding:12px}}
+@media(max-width:420px){.kpi .v{font-size:19px}.hide-s{display:none}}
+</style></head><body>
+<header><div><h1>Portefeuille de crédit et relances</h1><small>Microfinance · 6 agences · 20 agents de crédit · situation au lundi 23 novembre 2026</small></div>
+<button class="btn" onclick="essayer()">▶ Essayer le cycle de relance</button></header>
+<main>
+<section class="kpis">
+ <div class="card kpi"><div class="l">Encours brut</div><div class="v" id="k-enc"></div><div class="s" id="k-enc-s"></div></div>
+ <div class="card kpi"><div class="l">PAR 30</div><div class="v" id="k-p30"></div><div class="s" id="k-p30-s"></div></div>
+ <div class="card kpi"><div class="l">PAR 90</div><div class="v" id="k-p90"></div><div class="s" id="k-p90-s"></div></div>
+ <div class="card kpi"><div class="l">Emprunteurs actifs</div><div class="v" id="k-emp"></div><div class="s" id="k-emp-s"></div></div>
+</section>
+
+<section class="cycle" id="cycle"></section>
+
+<section class="grid2">
+ <div class="card"><h2>Évolution sur 6 mois</h2><div id="chart"></div>
+ <div class="foot">Barres : encours (millions FCFA). Courbes : PAR 30 et PAR 90 (% de l'encours).</div></div>
+ <div class="card scroll"><h2>Retards par agence</h2><table id="t-ag"></table></div>
+</section>
+
+<section class="grid2">
+ <div class="card scroll"><h2>Liste du jour · les <span id="nliste"></span> dossiers prioritaires</h2><table id="t-liste"></table></div>
+ <div class="card scroll"><h2>Retards par agent de crédit <select class="agsel" id="fag" onchange="renderAgents()"></select></h2><table id="t-agent"></table></div>
+</section>
+<p class="foot">PAR 30 (PAR 90) : encours restant dû des prêts ayant au moins une échéance impayée depuis plus de 30 (90) jours, rapporté à l'encours brut. Montants en francs CFA.</p>
+</main>
+
+<div id="modal"><div class="box" id="mbox"></div></div>
+
+<script src="data.js"></script><script>
+const f=n=>Math.round(n).toLocaleString('fr-FR').replace(/\u202f|\u00a0/g,' ');
+const M=n=>(n/1e6).toLocaleString('fr-FR',{maximumFractionDigits:1})+' M';
+const pc=(a,b,d=1)=>(a/b*100).toLocaleString('fr-FR',{minimumFractionDigits:d,maximumFractionDigits:d})+' %';
+const S={rappel:374,j0:352,j3:61,promesse:38,mm:247,mmMontant:16842500};
+let bonus={par30:0,retards:0};
+function tot(k){return D.agents.reduce((s,a)=>s+a[k],0)}
+function render(){
+ const enc=tot('encours'),p30=tot('par30')-bonus.par30,p90=tot('par90'),emp=tot('emprunteurs'),h=D.hist,prev=h[4];
+ D.hist[5].par30=p30;
+ document.getElementById('k-enc').textContent=f(enc/1e6)+' M FCFA';
+ document.getElementById('k-enc-s').innerHTML='<span class="down">+'+pc(enc-prev.encours,prev.encours)+'</span> sur un mois';
+ document.getElementById('k-p30').textContent=pc(p30,enc,2);
+ document.getElementById('k-p30-s').innerHTML=f(p30)+' FCFA · contre <span class="down">'+pc(h[0].par30,h[0].encours)+' en juin</span>';
+ document.getElementById('k-p90').textContent=pc(p90,enc,2);
+ document.getElementById('k-p90-s').innerHTML=f(p90)+' FCFA · contre <span class="down">'+pc(h[0].par90,h[0].encours)+' en juin</span>';
+ document.getElementById('k-emp').textContent=f(emp);
+ document.getElementById('k-emp-s').textContent=f(tot('retards')-bonus.retards)+' en retard (1 jour et plus)';
+ const st=[['rappel','Rappels WhatsApp J-2','envoyés ce matin'],['j0','Échéances du jour','à encaisser'],['j3','Relances J+3','à envoyer'],['promesse','Promesses de paiement','enregistrées'],['mm','Paiements mobile money','reçus et affectés'],['maj','Tableau mis à jour','à '+S.heure]];
+ document.getElementById('cycle').innerHTML=st.map((s,i)=>'<div class="step" id="st'+i+'"><span>'+(i+1)+'. '+s[1]+'</span><b>'+(s[0]=='maj'?'✓':f(S[s[0]]))+'</b><span>'+(s[0]=='mm'?f(S.mmMontant)+' FCFA':s[2])+'</span></div>').join('');
+ chart();renderAg();renderListe();renderAgents();
+}
+S.heure='08 h 15';
+function chart(){
+ const h=D.hist,W=560,H=220,pl=34,pr=34,pt=12,pb=26,bw=(W-pl-pr)/h.length,maxE=4000e6,maxP=.10;
+ let s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Évolution encours et PAR">';
+ for(let g=0;g<=4;g++){const y=pt+(H-pt-pb)*g/4;s+='<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y+'" y2="'+y+'" stroke="#eef0f4"/><text x="'+(pl-4)+'" y="'+(y+4)+'" font-size="10" text-anchor="end" fill="#8a93a3">'+f((maxE*(4-g)/4)/1e6)+'</text><text x="'+(W-pr+4)+'" y="'+(y+4)+'" font-size="10" fill="#8a93a3">'+(maxP*100*(4-g)/4)+'%</text>'}
+ const Y=v=>pt+(H-pt-pb)*(1-v);
+ h.forEach((m,i)=>{const x=pl+i*bw+bw*.22,bh=(H-pt-pb)*m.encours/maxE;s+='<rect x="'+x+'" y="'+(H-pb-bh)+'" width="'+bw*.56+'" height="'+bh+'" rx="3" fill="#dbe6f7"/><text x="'+(pl+i*bw+bw/2)+'" y="'+(H-8)+'" font-size="11" text-anchor="middle" fill="#5b6475">'+m.mois+'</text>'});
+ [['par30','#c8382d'],['par90','#d98a00']].forEach(([k,c])=>{const pts=h.map((m,i)=>[pl+i*bw+bw/2,Y(m[k]/m.encours/maxP)]);s+='<polyline fill="none" stroke="'+c+'" stroke-width="2.5" points="'+pts.map(p=>p.join(',')).join(' ')+'"/>';pts.forEach((p,i)=>{s+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3.5" fill="'+c+'"/>';if(i==0||i==5)s+='<text x="'+p[0]+'" y="'+(p[1]-8)+'" font-size="11" text-anchor="middle" fill="'+c+'" font-weight="700">'+pc(h[i][k],h[i].encours)+'</text>'})});
+ s+='<text x="'+(W-pr-4)+'" y="'+(pt+12)+'" font-size="11" text-anchor="end" fill="#c8382d">● PAR 30</text><text x="'+(W-pr-4)+'" y="'+(pt+26)+'" font-size="11" text-anchor="end" fill="#d98a00">● PAR 90</text></svg>';
+ document.getElementById('chart').innerHTML=s;
+}
+function group(){const g={};D.agents.forEach(a=>{g[a.agence]=g[a.agence]||{agence:a.agence,encours:0,par30:0,par90:0,retards:0,emp:0};const o=g[a.agence];o.encours+=a.encours;o.par30+=a.par30;o.par90+=a.par90;o.retards+=a.retards;o.emp+=a.emprunteurs});return Object.values(g).sort((a,b)=>b.par30/b.encours-a.par30/a.encours)}
+function barc(r){return r>.075?'var(--bad)':r>.06?'var(--warn)':'var(--ok)'}
+function renderAg(){const g=group();document.getElementById('t-ag').innerHTML='<tr><th>Agence</th><th class="hide-s">Encours</th><th>PAR 30</th><th></th><th>PAR 90</th><th>Retards</th></tr>'+g.map(o=>{const r=o.par30/o.encours;return '<tr><td>'+o.agence+'</td><td class="hide-s">'+M(o.encours)+'</td><td>'+pc(o.par30,o.encours)+'</td><td><div class="bar"><i style="width:'+Math.min(100,r/.1*100)+'%;background:'+barc(r)+'"></i></div></td><td>'+pc(o.par90,o.encours)+'</td><td>'+o.retards+'</td></tr>'}).join('')}
+function renderAgents(){const sel=document.getElementById('fag');if(!sel.options.length){sel.innerHTML='<option value="">Toutes agences</option>'+group().map(o=>'<option>'+o.agence+'</option>').join('')}
+ const v=sel.value,l=D.agents.filter(a=>!v||a.agence==v).sort((a,b)=>b.par30/b.encours-a.par30/a.encours);
+ document.getElementById('t-agent').innerHTML='<tr><th>Agent</th><th>Agence</th><th class="hide-s">Portefeuille</th><th>PAR 30</th><th>Retards</th></tr>'+l.map(a=>'<tr><td>'+a.nom+'</td><td>'+a.agence+'</td><td class="hide-s">'+M(a.encours)+'</td><td style="color:'+barc(a.par30/a.encours)+';font-weight:600">'+pc(a.par30,a.encours)+'</td><td>'+a.retards+'</td></tr>').join('')}
+function renderListe(){document.getElementById('nliste').textContent=D.liste.length;
+ document.getElementById('t-liste').innerHTML='<tr><th>Emprunteur</th><th class="hide-s">Agence</th><th>Échéance</th><th>Étape</th></tr>'+D.liste.map((c,i)=>'<tr><td>'+c.client+' <small style="color:#8a93a3">'+c.num+'</small></td><td class="hide-s">'+c.agence+'</td><td>'+f(c.echeance)+'</td><td><span class="tag t-'+c.cle+'">'+c.etape+'</span></td></tr>').join('')}
+/* Essayer : un dossier parcourt le cycle */
+let step=0,cur;
+function essayer(){cur=D.liste.find(c=>c.cle=='j3'&&!c.done)||D.liste.find(c=>!c.done)||D.liste[0];step=0;show();document.getElementById('modal').style.display='flex'}
+function close_(){document.getElementById('modal').style.display='none';document.querySelectorAll('.step').forEach(e=>e.classList.remove('on'))}
+function hl(i){document.querySelectorAll('.step').forEach((e,j)=>e.classList.toggle('on',j==i))}
+function show(){const c=cur,p=c.client.split(' ')[0],m=f(c.echeance)+' FCFA';
+ const steps=[
+ ['1. Liste du jour','Ce matin à 7 h, le système a classé les dossiers à traiter. Celui de <b>'+c.client+'</b> (agence '+c.agence+', agent '+c.agent+') arrive avec une échéance de <b>'+m+'</b>.',0],
+ ['2. Rappel WhatsApp avant l\'échéance (J-2)','<div class="wa">Bonjour '+p+',\nNous vous rappelons que votre échéance de '+m+' arrive le 20/11.\nVous pouvez payer par Orange Money, MTN MoMo, Moov Money ou Wave avec la référence '+c.num+'.\nMerci pour votre confiance et bonne journée.\nVotre agent de crédit, '+c.agent+'</div>',0],
+ ['3. Relance à J+3','<div class="wa">Bonjour '+p+',\nNous n\'avons pas encore reçu votre échéance de '+m+' du 20/11. Il s\'agit peut-être d\'un simple oubli.\nSi vous rencontrez une difficulté, dites-le-nous : nous cherchons ensemble une solution.\nRépondez 1 pour payer aujourd\'hui, 2 pour indiquer une date.\nMerci, '+c.agent+'</div>',2],
+ ['4. Promesse de paiement','<div class="wa" style="background:#fff;border-left-color:#6a3fb5">'+p+' : « 2 »  puis « Je paie ce matin avant 11 h »</div><p>La promesse est enregistrée pour aujourd\'hui, 11 h. L\'agent '+c.agent+' la voit dans sa liste. Aucun autre rappel ne part d\'ici là.</p>',3],
+ ['5. Encaissement mobile money','<p>Aujourd\'hui à 10 h 42 : paiement reçu de <b>'+m+'</b> par mobile money, référence '+c.num+'.</p><p>Le paiement est reconnu par sa référence et affecté à l\'échéance. Un reçu part par WhatsApp :</p><div class="wa">Merci '+p+', nous avons bien reçu '+m+'. Votre prochaine échéance est le 20/12.</div>',4],
+ ['6. Tableau mis à jour','<p>Le dossier sort de la liste des retards : le compteur des emprunteurs en retard, les relances J+3 et les encaissements du jour se recalculent aussitôt, pour l\'agence '+c.agence+' et pour l\'agent '+c.agent+'. Le PAR 30 ne bouge pas : ce prêt n\'avait que 3 jours de retard.</p>',5]];
+ const s=steps[step];hl(s[2]);
+ document.getElementById('mbox').innerHTML='<div class="prog">'+steps.map((_,i)=>'<i class="'+(i<=step?'on':'')+'"></i>').join('')+'</div><h2>'+s[0]+'</h2>'+s[1]+'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="btn sec" onclick="close_()">Fermer</button><button class="btn" onclick="next()">'+(step<5?'Étape suivante →':'Voir le tableau')+'</button></div>';
+}
+function next(){if(step<5){step++;if(step==5){if(!cur.done){cur.done=1;S.mm++;S.mmMontant+=cur.echeance;S.j3=Math.max(0,S.j3-1);const ag=D.agents.find(a=>a.nom==cur.agent);if(ag)ag.retards--;cur.cle='paye';cur.etape='Payé à 10 h 42';S.heure='10 h 43';render()}}show()}else close_()}
+render();
+</script></body></html>
